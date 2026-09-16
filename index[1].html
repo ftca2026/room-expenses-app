@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Room Expenses</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f4f6f8;color:#17202a}
+.app{max-width:520px;margin:auto;min-height:100vh;background:#fff}
+header{padding:22px 20px;background:#1769aa;color:#fff;border-radius:0 0 22px 22px}
+header h1{margin:0;font-size:24px}header p{margin:6px 0 0;opacity:.9}
+main{padding:18px}.card{background:#fff;border-radius:18px;padding:18px;box-shadow:0 4px 18px #00000012;margin-bottom:16px}
+label{display:block;font-weight:600;margin:12px 0 7px}input,select,textarea{width:100%;padding:13px;border:1px solid #d7dce1;border-radius:11px;font-size:16px;background:#fff}
+button{width:100%;padding:14px;border:0;border-radius:12px;background:#1769aa;color:#fff;font-size:16px;font-weight:700;margin-top:16px}
+button:active{transform:scale(.99)}.secondary{background:#eef4f8;color:#1769aa}.status{margin-top:12px;text-align:center;font-weight:600;min-height:20px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}.stat{padding:14px;background:#f3f7fa;border-radius:14px}.stat small{display:block;color:#667;font-size:12px}.stat strong{font-size:20px}
+.notice{font-size:13px;color:#667;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="app">
+<header><h1>🏠 Room Expenses</h1><p>Enter your room expense quickly</p></header>
+<main>
+<div class="card">
+<form id="expenseForm">
+<label>Date</label>
+<input id="date" type="date" required>
+
+<label>Amount (₹)</label>
+<input id="amount" type="number" min="0" step="0.01" placeholder="Enter amount" required>
+
+<label>Expense By</label>
+<select id="expenseBy" required>
+<option value="">Select person</option>
+<option>Sujit Paul</option>
+<option>Shyamal Chandra Paul</option>
+<option>Keya Biswas</option>
+</select>
+
+<label>Remarks</label>
+<textarea id="remarks" rows="3" placeholder="Example: vegetables, milk, grocery"></textarea>
+
+<button type="submit">SAVE EXPENSE</button>
+<div class="status" id="status"></div>
+</form>
+</div>
+
+<div class="card">
+<div class="stats">
+<div class="stat"><small>Purchase Count</small><strong id="count">0</strong></div>
+<div class="stat"><small>Total Amount</small><strong id="total">₹0</strong></div>
+</div>
+<button class="secondary" type="button" onclick="loadSummary()">Refresh Summary</button>
+</div>
+
+<div class="card notice">
+<strong>Privacy:</strong> Friends use this screen only. They do not need editing access to the Google Sheet.
+</div>
+</main>
+</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbyBShRsLJ6cVs0sUNIfNo1vE2m2glklogJe73Ln4ru4fEjCZaHgQnvQUdkmIPjN7WPg/exec";
+document.getElementById("date").value = new Date().toISOString().slice(0,10);
+
+async function submitExpense(e){
+ e.preventDefault();
+ const status=document.getElementById("status");
+ status.textContent="Saving...";
+ const data={
+   date:document.getElementById("date").value,
+   amount:document.getElementById("amount").value,
+   expenseBy:document.getElementById("expenseBy").value,
+   remarks:document.getElementById("remarks").value
+ };
+ try{
+   if(API_URL.includes("PASTE_YOUR")){
+     status.textContent="App ready. Connect your Google Apps Script URL first.";
+     return;
+   }
+   const res=await fetch(API_URL,{method:"POST",mode:"cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(data)});
+   const result=await res.json();
+   if(result.success){
+     status.textContent="✅ Expense saved";
+     document.getElementById("amount").value="";
+     document.getElementById("remarks").value="";
+     loadSummary();
+   }else status.textContent="❌ "+(result.error||"Could not save");
+ }catch(err){status.textContent="❌ Connection error. Check the Apps Script URL."}
+}
+document.getElementById("expenseForm").addEventListener("submit",submitExpense);
+
+async function loadSummary(){
+ if(API_URL.includes("PASTE_YOUR")) return;
+ try{
+   const res=await fetch(API_URL+"?action=summary");
+   const r=await res.json();
+   if(r.success){document.getElementById("count").textContent=r.count;document.getElementById("total").textContent="₹"+Number(r.total).toFixed(2)}
+ }catch(e){}
+}
+loadSummary();
+</script>
+</body>
+</html>
